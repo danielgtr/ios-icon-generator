@@ -52,16 +52,27 @@ def generate_base_icon(pipe, prompt: str, output_path: str = "icon_base.png", hi
     no text, no letters, symbolic, square format, high quality"""
 
     # SDXL-Turbo works best with 1-4 steps and no guidance
-    # High quality mode uses more steps for better results
-    num_steps = 8 if high_quality else 4
+    # High quality mode: more steps + higher resolution then downscale
+    if high_quality:
+        num_steps = 12  # More inference steps for better quality
+        height = 1536  # Generate at higher resolution
+        width = 1536
+    else:
+        num_steps = 4
+        height = 1024
+        width = 1024
 
     image = pipe(
         prompt=enhanced_prompt,
         num_inference_steps=num_steps,
         guidance_scale=0.0,
-        height=1024,
-        width=1024,
+        height=height,
+        width=width,
     ).images[0]
+
+    # If we generated at higher resolution, downscale to 1024x1024 with high quality
+    if high_quality and (height > 1024 or width > 1024):
+        image = image.resize((1024, 1024), Image.Resampling.LANCZOS)
 
     # Save base icon with maximum quality
     image.save(output_path, quality=100)
