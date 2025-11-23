@@ -1,0 +1,50 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Model cache (HuggingFace models are large)
+.cache/
+~/.cache/huggingface/
+
+# Generated images and outputs
+*.png
+!example_*.png
+test_icons/
+PaceCalculator_Icons/
+app_icons/
+flux_icons/
+*_icons/
+*_icon_*.png
+
+# Temporary files
+*.log
+*.tmp
+.claude/
