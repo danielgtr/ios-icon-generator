@@ -41,7 +41,7 @@ def load_model(use_cpu: bool = False):
 
     return pipe
 
-def generate_base_icon(pipe, prompt: str, output_path: str = "icon_base.png"):
+def generate_base_icon(pipe, prompt: str, output_path: str = "icon_base.png", high_quality: bool = False):
     """
     Generate a 1024x1024 base icon using SDXL-Turbo
     """
@@ -52,16 +52,19 @@ def generate_base_icon(pipe, prompt: str, output_path: str = "icon_base.png"):
     no text, no letters, symbolic, square format, high quality"""
 
     # SDXL-Turbo works best with 1-4 steps and no guidance
+    # High quality mode uses more steps for better results
+    num_steps = 8 if high_quality else 4
+
     image = pipe(
         prompt=enhanced_prompt,
-        num_inference_steps=4,
+        num_inference_steps=num_steps,
         guidance_scale=0.0,
         height=1024,
         width=1024,
     ).images[0]
 
-    # Save base icon
-    image.save(output_path, quality=95)
+    # Save base icon with maximum quality
+    image.save(output_path, quality=100)
 
     return image
 
@@ -174,6 +177,11 @@ Examples:
         action="store_true",
         help="Force CPU usage instead of MPS (more stable but slower)"
     )
+    parser.add_argument(
+        "--high-quality",
+        action="store_true",
+        help="Use higher quality settings (slower, uses more inference steps)"
+    )
 
     args = parser.parse_args()
 
@@ -201,7 +209,7 @@ Examples:
 
         # Generate base icon
         base_filename = os.path.join(variation_dir, "icon_base.png")
-        base_icon = generate_base_icon(pipe, args.prompt, base_filename)
+        base_icon = generate_base_icon(pipe, args.prompt, base_filename, high_quality=args.high_quality)
 
         print(f"✅ Base icon saved to: {base_filename}")
 
@@ -210,7 +218,7 @@ Examples:
 
         # Copy high-res version to preview folder
         preview_filename = os.path.join(preview_dir, f"preview_{i:02d}.png")
-        base_icon.save(preview_filename, quality=95)
+        base_icon.save(preview_filename, quality=100)
         print(f"📋 High-res preview saved to: {preview_filename}")
 
     print(f"\n{'='*60}")
