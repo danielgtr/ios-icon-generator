@@ -197,6 +197,7 @@ Examples:
 
         # Create folder for this variation
         variation_dir = os.path.join(args.output, f"option_{i:02d}")
+        os.makedirs(variation_dir, exist_ok=True)
 
         # Generate base icon
         base_filename = os.path.join(variation_dir, "icon_base.png")
