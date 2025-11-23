@@ -10,9 +10,9 @@ from PIL import Image
 import os
 import argparse
 
-def generate_base_icon(prompt: str, output_path: str = "icon_base.png", use_cpu: bool = False):
+def load_model(use_cpu: bool = False):
     """
-    Generate a 1024x1024 base icon using SDXL-Turbo
+    Load SDXL-Turbo model once for reuse
     """
     print("🚀 Initializing SDXL-Turbo for icon generation...")
     print(f"PyTorch version: {torch.__version__}")
@@ -39,14 +39,17 @@ def generate_base_icon(prompt: str, output_path: str = "icon_base.png", use_cpu:
     )
     pipe = pipe.to(device)
 
+    return pipe
+
+def generate_base_icon(pipe, prompt: str, output_path: str = "icon_base.png"):
+    """
+    Generate a 1024x1024 base icon using SDXL-Turbo
+    """
     # Enhanced prompt for iOS icon style
     enhanced_prompt = f"""{prompt}
     iOS app icon, minimalist design, clean, centered composition,
     professional, vibrant colors, gradient background, modern,
     no text, no letters, symbolic, square format, high quality"""
-
-    print(f"\n🎨 Generating icon...")
-    print(f"Prompt: {prompt}")
 
     # SDXL-Turbo works best with 1-4 steps and no guidance
     image = pipe(
@@ -59,8 +62,6 @@ def generate_base_icon(prompt: str, output_path: str = "icon_base.png", use_cpu:
 
     # Save base icon
     image.save(output_path, quality=95)
-    print(f"\n✅ Base icon saved to: {output_path}")
-    print(f"Size: {image.size}")
 
     return image
 
@@ -142,6 +143,7 @@ Examples:
   python icon_generator.py "A running shoe with a stopwatch"
   python icon_generator.py "Calculator app with numbers" --output calculator_icons
   python icon_generator.py "Music player app" --cpu
+  python icon_generator.py "Running shoe with timer" --count 50
         """
     )
     parser.add_argument(
@@ -153,13 +155,19 @@ Examples:
         "-o", "--output",
         type=str,
         default="app_icons",
-        help="Output directory for icons (default: app_icons)"
+        help="Base output directory for icons (default: app_icons)"
     )
     parser.add_argument(
         "-n", "--name",
         type=str,
         default="app",
         help="App name for file naming (default: app)"
+    )
+    parser.add_argument(
+        "-c", "--count",
+        type=int,
+        default=50,
+        help="Number of variations to generate (default: 50)"
     )
     parser.add_argument(
         "--cpu",
@@ -169,19 +177,55 @@ Examples:
 
     args = parser.parse_args()
 
-    # Generate base icon
-    base_filename = f"{args.name}_icon_base.png"
-    base_icon = generate_base_icon(args.prompt, base_filename, use_cpu=args.cpu)
+    # Load model once for all generations
+    print(f"\n{'='*60}")
+    print(f"Generating {args.count} icon variations")
+    print(f"Prompt: {args.prompt}")
+    print(f"{'='*60}\n")
 
-    # Create all iOS sizes
-    resize_for_ios(base_icon, args.output, args.name)
+    pipe = load_model(use_cpu=args.cpu)
 
-    print(f"\n🎉 Done! Your iOS icons are ready in '{args.output}/'")
-    print("\nTo use in Xcode:")
-    print(f"1. Copy the '{args.output}/' folder to your Xcode project")
-    print("2. Rename it to 'AppIcon.appiconset'")
-    print("3. Place it inside Assets.xcassets/")
-    print("4. The Contents.json file is already configured!")
+    # Create high-res previews directory
+    preview_dir = os.path.join(args.output, "high_res_previews")
+    os.makedirs(preview_dir, exist_ok=True)
+
+    # Generate multiple variations
+    for i in range(1, args.count + 1):
+        print(f"\n{'='*60}")
+        print(f"🎨 Generating variation {i}/{args.count}")
+        print(f"{'='*60}")
+
+        # Create folder for this variation
+        variation_dir = os.path.join(args.output, f"option_{i:02d}")
+
+        # Generate base icon
+        base_filename = os.path.join(variation_dir, "icon_base.png")
+        base_icon = generate_base_icon(pipe, args.prompt, base_filename)
+
+        print(f"✅ Base icon saved to: {base_filename}")
+
+        # Create all iOS sizes in the variation folder
+        resize_for_ios(base_icon, variation_dir, args.name)
+
+        # Copy high-res version to preview folder
+        preview_filename = os.path.join(preview_dir, f"preview_{i:02d}.png")
+        base_icon.save(preview_filename, quality=95)
+        print(f"📋 High-res preview saved to: {preview_filename}")
+
+    print(f"\n{'='*60}")
+    print(f"🎉 Done! Generated {args.count} variations")
+    print(f"{'='*60}")
+    print(f"\n📁 Output structure:")
+    print(f"   {args.output}/")
+    print(f"   ├── high_res_previews/    (All 1024x1024 versions for comparison)")
+    print(f"   ├── option_01/            (Full icon set)")
+    print(f"   ├── option_02/            (Full icon set)")
+    print(f"   └── ...")
+    print(f"\n💡 To use in Xcode:")
+    print(f"   1. Browse 'high_res_previews/' to pick your favorite")
+    print(f"   2. Copy the corresponding 'option_XX/' folder to your Xcode project")
+    print(f"   3. Rename it to 'AppIcon.appiconset'")
+    print(f"   4. Place it inside Assets.xcassets/")
 
 if __name__ == "__main__":
     main()
